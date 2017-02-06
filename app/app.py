@@ -1,28 +1,38 @@
-from flask import Flask
-from worker import celery
-from celery.result import AsyncResult
-import celery.states as states
+from flask import Flask, jsonify
 from os import environ
 from json import dumps
+from redis_wrapper import redis_connection
+from jobs import get_it
+from rq import Queue
 
 flask_app = Flask(__name__)
 
-@flask_app.route("/v1/jobs/submit")
+@flask_app.route("/v1/run_task")
 def submit():
-  task = celery.send_task('job.calculate', args=['nothing'], kwargs=[])
-  return  task.id
+  q = Queue(connection=redis_connection)
+  job = q.enqueue(get_it)
+  return job.get_id()
 
-@flask_app.route("/v1/jobs/get/<string:id>")
-def get_job(id):
-  result = celery.AsyncResult(id)
-  if result.state == states.PENDING:
-    return result.state
+@flask_app.route("/v1/status/<job_id>")
+def job_status(job_id):
+  q = Queue(connection=redis_connection)
+  job = q.fetch_job(job_id)
+  if job is None:
+    response = {'status': 'unknown'}
   else:
-    return dumps(result.result)
+    response = {
+      'status': job.get_status(),
+      'result': job.result
+    }
+    if job.is_failed:
+      response['message'] = job.exc_info.strip.split('\n')[-1]
+
+    return jsonify(response)
+
 
 if __name__ == "__main__":
-  flask_app.run(debug=environ.get('DEBUG', True), 
-		host=environ.get('HOST', '0.0.0.0'),
-		port=int(environ.get('PORT', 5000)))
+  flask_app.run(debug=environ.get('FLASK_DEBUG', True), 
+		host=environ.get('FLASK_HOST', '0.0.0.0'),
+		port=int(environ.get('FLASK_PORT', 5000)))
 
 

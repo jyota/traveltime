@@ -1,11 +1,9 @@
-from os import environ
-from celery import Celery
+from rq import Connection, Worker
+from redis_wrapper import redis_connection 
+from jobs import get_it
 
-CELERY_BROKER_URL = environ.get('CELERY_BROKER_URL', 'amqp://localhost')
-CELERY_RESULT_BACKEND = environ.get('CELERY_RESULT_BACKEND', 'rpc://')
-CELERY_IGNORE_RESULT = False
+with Connection(redis_connection):
+  qs = ['default']
+  w = Worker(qs)
+  w.work()
 
-celery = Celery('jobs', 
-		backend = CELERY_RESULT_BACKEND,
-		broker = CELERY_BROKER_URL,
-		task_ignore_result = CELERY_IGNORE_RESULT)

@@ -1,7 +1,17 @@
 import googlemaps
 from datetime import datetime, timedelta
+from rq.decorators import job
+from os import environ
+from time import sleep
+from redis_wrapper import redis_connection
 
 gmaps = googlemaps.Client(key='AIzaSyBcHydWjoBKKQ9hFciBHuxu2EAv36mIjUI')
+
+@job('default', connection=redis_connection)
+def get_it():
+  sleep(5)
+  return {'done': True}
+
 
 class DirectionTimeOptimizer:
     def __init__(self, origin, destination, 

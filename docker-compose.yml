@@ -4,27 +4,24 @@ services:
     build:
       context: ./app
       dockerfile: Dockerfile
+    command: python app.py 
+    image: flaskrq
     restart: always
     ports:
      - "5000:5000"
     depends_on:
-      - rabbitmq
+      - redis
     links:
-      - rabbitmq:rabbit1 
+      - redis:redis1 
   worker:
-    build:
-      context: ./worker
-      dockerfile: Dockerfile
+    image: flaskrq
+    command: python worker.py
     depends_on:
-      - rabbitmq 
+      - redis 
     links:
-      - rabbitmq:rabbit1
-  rabbitmq:
+      - redis:redis1
+  redis:
     restart: always
-    image: rabbitmq:latest
-    hostname: "rabbit1"
-    ports:
-      - "5672:5672"
-      - "15672:15672"
-
+    image: redis:latest
+    hostname: "redis1"
 
