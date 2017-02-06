@@ -10,7 +10,7 @@ flask_app = Flask(__name__)
 @flask_app.route("/v1/run_task")
 def submit():
   q = Queue(connection=redis_connection)
-  job = q.enqueue(get_it)
+  job = q.enqueue(get_it, 5)
   return job.get_id()
 
 @flask_app.route("/v1/status/<job_id>")
@@ -25,7 +25,7 @@ def job_status(job_id):
       'result': job.result
     }
     if job.is_failed:
-      response['message'] = job.exc_info.strip.split('\n')[-1]
+      response['message'] = job.exc_info.strip().split('\n')[-1]
 
     return jsonify(response)
 

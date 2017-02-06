@@ -8,9 +8,21 @@ from redis_wrapper import redis_connection
 gmaps = googlemaps.Client(key='AIzaSyBcHydWjoBKKQ9hFciBHuxu2EAv36mIjUI')
 
 @job('default', connection=redis_connection)
-def get_it():
+def get_it(new_value):
+  class OtherThing:
+    def __init__(self):
+      self.value = 0
+
+    def set(self, value):
+      self.value = value
+
+    def get(self):
+      return self.value
+
+  our_thing = OtherThing()
   sleep(5)
-  return {'done': True}
+  our_thing.set(new_value)
+  return {'value': our_thing.get()}
 
 
 class DirectionTimeOptimizer:
