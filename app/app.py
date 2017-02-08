@@ -5,15 +5,15 @@ from redis_wrapper import redis_connection
 from jobs import get_it
 from rq import Queue
 
-flask_app = Flask(__name__)
+app = Flask(__name__)
 
-@flask_app.route("/v1/run_task")
+@app.route("/v1/run_task")
 def submit():
   q = Queue(connection=redis_connection)
   job = q.enqueue(get_it, 5)
   return job.get_id()
 
-@flask_app.route("/v1/status/<job_id>")
+@app.route("/v1/status/<job_id>")
 def job_status(job_id):
   q = Queue(connection=redis_connection)
   job = q.fetch_job(job_id)
@@ -29,10 +29,5 @@ def job_status(job_id):
 
     return jsonify(response)
 
-
-if __name__ == "__main__":
-  flask_app.run(debug=environ.get('FLASK_DEBUG', True), 
-		host=environ.get('FLASK_HOST', '0.0.0.0'),
-		port=int(environ.get('FLASK_PORT', 5000)))
 
 
