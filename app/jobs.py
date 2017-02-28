@@ -114,7 +114,6 @@ def get_optimum_time(orig_in, dest_in, min_leave_in, max_leave_in, min_dest_in, 
 	job.meta['status'] = 'created'
 	job.save()
 
-	#try:
 	my_optimizer.calculate_possible_times_to_leave()
 	job.meta['status'] = 'times_to_leave_done'
 	job.save()
@@ -124,9 +123,8 @@ def get_optimum_time(orig_in, dest_in, min_leave_in, max_leave_in, min_dest_in, 
 	result = my_optimizer.determine_optimum_times()
 	job.meta['status'] = 'complete'
 	job.save()
-	#except:
-	#	job.meta['status'] = 'fail'	
-	#	job.save()
-
+	result['requested'] = {'orig_in': orig_in, 'dest_in': dest_in, 'min_leave_in': min_leave_in,
+				'max_leave_in': max_leave_in, 'min_dest_in': min_dest_in, 'max_dest_in': max_dest_in,
+				'granularity_in': granularity_in, 'traffic_model_in': traffic_model_in}
 	return result
 

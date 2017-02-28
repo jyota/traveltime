@@ -1,5 +1,9 @@
+requests==2.11.1
+pytz==2015.7
+python-dateutil==2.5.0
 uwsgi==2.0.14
 googlemaps==2.4.5
+google-api-python-client==1.5.5
 Flask==0.10.1
 redis==2.10.5
 rq==0.6.0

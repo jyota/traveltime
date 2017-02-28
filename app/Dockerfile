@@ -1,4 +1,4 @@
-FROM ubuntu:14.04
+FROM python:2.7.11 
 
 
 RUN apt-get update -y
