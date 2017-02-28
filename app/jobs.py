@@ -6,7 +6,7 @@ from time import sleep
 from redis_wrapper import redis_connection
 from rq import get_current_job
 
-gmaps = googlemaps.Client(key='AIzaSyBcHydWjoBKKQ9hFciBHuxu2EAv36mIjUI')
+gmaps = googlemaps.Client(key='AIzaSyCKKLTC8A5HMzXKtcPbOHhsfCkbj16n98Y')
 
 @job('default', connection=redis_connection)
 def get_optimum_time(orig_in, dest_in, min_leave_in, max_leave_in, min_dest_in, max_dest_in, granularity_in, traffic_model_in):
