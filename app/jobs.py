@@ -9,7 +9,7 @@ from rq import get_current_job
 gmaps = googlemaps.Client(key='AIzaSyCKKLTC8A5HMzXKtcPbOHhsfCkbj16n98Y')
 
 @job('default', connection=redis_connection)
-def get_optimum_time(orig_in, dest_in, min_leave_in, max_leave_in, min_dest_in, max_dest_in, granularity_in, traffic_model_in):
+def get_optimum_time(orig_in, dest_in, min_leave_in, max_leave_in, min_dest_in, max_dest_in, granularity_in, traffic_model_in, tz_in):
 	class DirectionTimeOptimizer:
 	    def __init__(self, origin, destination, 
 			 min_time_to_leave, max_time_to_leave, 
@@ -125,6 +125,6 @@ def get_optimum_time(orig_in, dest_in, min_leave_in, max_leave_in, min_dest_in, 
 	job.save()
 	result['requested'] = {'orig_in': orig_in, 'dest_in': dest_in, 'min_leave_in': min_leave_in,
 				'max_leave_in': max_leave_in, 'min_dest_in': min_dest_in, 'max_dest_in': max_dest_in,
-				'granularity_in': granularity_in, 'traffic_model_in': traffic_model_in}
+				'granularity_in': granularity_in, 'traffic_model_in': traffic_model_in, 'tz_in': tz_in}
 	return result
 
