@@ -74,7 +74,7 @@ def job_status(job_id):
     response = {'status': 'unknown'}
   else:
     working_result = job.result
-    if 'orig_to_dest' in working_result:
+    if type(working_result) is dict and 'orig_to_dest' in working_result:
 	    working_result['orig_to_dest'] = utc_to_timezone(working_result['requested']['tz_in'], 
 							     working_result['orig_to_dest'])
 	    working_result['dest_to_orig'] = utc_to_timezone(working_result['requested']['tz_in'], 
@@ -85,7 +85,9 @@ def job_status(job_id):
 									  working_result['requested']['max_leave_in'])
 
     response = {
-      'status': job.meta['status'],
+      'status': (job.meta['status']
+                 if 'status' in job.meta
+                 else 'unknown'),
       'result': working_result
     }
     if job.is_failed:
