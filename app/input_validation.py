@@ -23,11 +23,11 @@ input_schema = {'traffic_model': {'type': 'string',
                              'required': True},
                 'depart_start': {'type': 'string',
                                  'required': True,
-                                 'minlength': 19,
+                                 'minlength': 13,
                                  'maxlength': 19},
                 'depart_end': {'type': 'string',
                                  'required': True,
-                                 'minlength': 19,
+                                 'minlength': 13,
                                  'maxlength': 19}}
 
 basicInputValidator = Validator(input_schema)
