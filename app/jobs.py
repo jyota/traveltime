@@ -114,12 +114,23 @@ def get_optimum_time(orig_in, dest_in, min_leave_in, max_leave_in, min_dest_in, 
 	job.meta['status'] = 'created'
 	job.save()
 
-	my_optimizer.calculate_possible_times_to_leave()
-	job.meta['status'] = 'times_to_leave_done'
-	job.save()
-	my_optimizer.calculate_possible_times_to_return()
-	job.meta['status'] = 'times_to_return_done'
-	job.save()
+	try:
+	  my_optimizer.calculate_possible_times_to_leave()
+	  job.meta['status'] = 'times_to_leave_done'
+	  job.save()
+	  my_optimizer.calculate_possible_times_to_return()
+	  job.meta['status'] = 'times_to_return_done'
+	  job.save()
+	except googlemaps.exceptions.ApiError as e:
+		if 'departure_time is in the past' in str(e):
+			job.meta['status'] = 'api_error_departure_in_the_past'
+			job.save()
+			return None
+		else:
+			job.meta['status'] = 'api_error_unknown'
+			job.save()
+			return None
+
 	result = my_optimizer.determine_optimum_times()
 	job.meta['status'] = 'complete'
 	job.save()

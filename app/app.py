@@ -8,7 +8,9 @@ from rq import Queue
 from dateutil import parser
 from pytz import timezone
 from datetime import datetime
-# ex. curl -H "Content-Type: application/json" -X POST -d '{"depart_start": "2017-03-02T08:00:00", "depart_end": "2017-03-02T10:00:00", "depart_loc": "Shinjuku, Tokyo", "dest_loc": "Ueno Park, Tokyo", "min_mins_loc": 480, "max_mins_loc": 540, "traffic_model": "pessimistic", "timezone": "Japan"}' http://localhost/v1/run_task
+from input_validation import basicInputValidator
+
+# ex. curl -H "Content-Type: application/json" -X POST -d '{"depart_start": "2017-06-02T08:00:00", "depart_end": "2017-06-02T10:00:00", "depart_loc": "Shinjuku, Tokyo", "dest_loc": "Ueno Park, Tokyo", "min_mins_loc": 0, "max_mins_loc": 540, "traffic_model": "pessimistic", "timezone": "Japan"}' http://localhost/v1/run_task
 
 class CustomJSONEncoder(JSONEncoder):
     def default(self, obj):
@@ -46,24 +48,39 @@ app.debug = True
 def submit():
   request_details = request.get_json()
 
+  try: 
+    basic_validation_result = basicInputValidator.validate(request_details)
+    assert basic_validation_result
+  except AssertionError:
+    return "basic_validation_error: " + dumps(basic_validation_result.errors)
+
   q = Queue(connection=redis_connection)
   depart_loc = request_details['depart_loc']
   dest_loc = request_details['dest_loc']
   min_mins_loc = request_details['min_mins_loc']
   max_mins_loc = request_details['max_mins_loc']
+  diff_mins = max_mins_loc - min_mins_loc
+
+  if not diff_mins >= 0:
+    return "diff_mins_negative"
+
+  if not diff_mins <= 160:
+    return "diff_mins_over_4hrs"
+
+  request_timezone = request_details['timezone']
   time_grain = 15
   traffic_model = request_details['traffic_model']
-  request_timezone = request_details['timezone']
   depart_start = timezone_to_utc(request_timezone, parser.parse(request_details['depart_start']))
   depart_end = timezone_to_utc(request_timezone, parser.parse(request_details['depart_end']))
 
   job = q.enqueue(get_optimum_time, 
-	depart_loc,
- 	dest_loc,
-	depart_start,
-	depart_end,
-	min_mins_loc, max_mins_loc,
-	time_grain, traffic_model, request_timezone)
+	  depart_loc,
+ 	  dest_loc,
+	  depart_start,
+	  depart_end,
+	  min_mins_loc, max_mins_loc,
+	  time_grain, traffic_model, request_timezone)
+
   return job.get_id()
 
 @app.route("/v1/status/<job_id>")
