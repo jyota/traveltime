@@ -9,7 +9,7 @@ def timezone_string_exists(field, value, error):
 
 input_schema = {'traffic_model': {'type': 'string',
                                   'required': True,
-                                  'allowed': ['pessimistic', 'optimistic', 'bestguess']},
+                                  'allowed': ['pessimistic', 'optimistic', 'best_guess']},
                 'timezone': {'type': 'string',
                              'required': True,
                              'validator': timezone_string_exists},

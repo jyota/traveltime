@@ -46,16 +46,16 @@ def get_optimum_time(orig_in, dest_in, min_leave_in, max_leave_in, min_dest_in, 
 			   for i in xrange(0, self.time_to_leave_segments)]
 		
 		for time_to_leave in min_set:
-		    result = self.get_duration_from_result(
-			gmaps.directions(self.origin,
+			gmaps_result = gmaps.directions(self.origin,
 					 self.destination,
 					 mode="driving",
 					 traffic_model=self.traffic_model,                                         
-					 departure_time=time_to_leave))
-		
-		    if result is not None:
-			self.origin_leave_time_lookup[time_to_leave] = {
-			    'orig_to_dest_time': result}
+					 departure_time=time_to_leave)
+			result = self.get_duration_from_result(gmaps_result)
+			if result is not None:
+				self.origin_leave_time_lookup[time_to_leave] = {
+				'orig_to_dest_time': result,
+				'summary_name': gmaps_result[0]['summary']}
 
 		if not self.origin_leave_time_lookup == {}:
 		    return True
@@ -73,17 +73,21 @@ def get_optimum_time(orig_in, dest_in, min_leave_in, max_leave_in, min_dest_in, 
 				 for i in xrange(0, self.time_at_dest_segments)]
 
 		    for dest_leave_time in time_set:
-			result = self.get_duration_from_result(
-			    gmaps.directions(self.destination,
+		    	gmaps_result = gmaps.directions(self.destination,
 					     self.origin,
 					     mode="driving",
 					     traffic_model=self.traffic_model,                                         
-					     departure_time=dest_leave_time))
-			if 'dest_return_time_lookup' not in self.origin_leave_time_lookup[leave_time] and result is not None:
-			    self.origin_leave_time_lookup[leave_time]['dest_return_time_lookup'] = {}
-			    self.origin_leave_time_lookup[leave_time]['dest_return_time_lookup'][dest_leave_time] = result
-			elif 'dest_return_time_lookup' in self.origin_leave_time_lookup[leave_time] and result is not None:
-			    self.origin_leave_time_lookup[leave_time]['dest_return_time_lookup'][dest_leave_time] = result
+					     departure_time=dest_leave_time)
+		    	result = self.get_duration_from_result(gmaps_result)
+		    	if 'dest_return_time_lookup' not in self.origin_leave_time_lookup[leave_time] and result is not None:
+		    		self.origin_leave_time_lookup[leave_time]['dest_return_time_lookup'] = {}
+		    		self.origin_leave_time_lookup[leave_time]['dest_return_time_lookup'][dest_leave_time] = {
+		    		  'dest_to_orig_time': result,
+		    		  'summary_name': gmaps_result[0]['summary']}
+		    	elif 'dest_return_time_lookup' in self.origin_leave_time_lookup[leave_time] and result is not None:
+		    		self.origin_leave_time_lookup[leave_time]['dest_return_time_lookup'][dest_leave_time] = {
+		    		  'dest_to_orig_time': result,
+		    		  'summary_name': gmaps_result[0]['summary']}
 
 		return True
 
@@ -92,18 +96,22 @@ def get_optimum_time(orig_in, dest_in, min_leave_in, max_leave_in, min_dest_in, 
 		    min_combination = {
 			'orig_to_dest': None,
 			'dest_to_orig': None,
+			'orig_to_dest_summary': None,
+			'dest_to_orig_summary': None,
 			'status': 'Success'
 		    }
 
 		    min_seen = 10000000
 		    for timestamp, item in self.origin_leave_time_lookup.iteritems():
-			for sub_ts, sub_item in item['dest_return_time_lookup'].iteritems():
-			    if (item['orig_to_dest_time'] + sub_item) < min_seen:
-				min_seen = item['orig_to_dest_time'] + sub_item
-				min_combination['orig_to_dest'] = timestamp
-				min_combination['dest_to_orig'] = sub_ts
+		    	for sub_ts, sub_item in item['dest_return_time_lookup'].iteritems():
+		    		if (item['orig_to_dest_time'] + sub_item['dest_to_orig_time']) < min_seen:
+		    			min_seen = item['orig_to_dest_time'] + sub_item['dest_to_orig_time']
+		    			min_combination['orig_to_dest'] = timestamp
+		    			min_combination['dest_to_orig'] = sub_ts
+		    			min_combination['orig_to_dest_summary'] = item['summary_name']
+		    			min_combination['dest_to_orig_summary'] = sub_item['summary_name']
+		    			min_combination['est_travel_time_mins'] = min_seen
 
-		    min_combination['est_travel_time_mins'] = min_seen
 		    return min_combination
 
 	job = get_current_job()

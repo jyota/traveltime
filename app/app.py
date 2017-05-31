@@ -10,7 +10,7 @@ from pytz import timezone
 from datetime import datetime
 from input_validation import basicInputValidator
 
-# ex. curl -H "Content-Type: application/json" -X POST -d '{"depart_start": "2017-06-02T08:00:00", "depart_end": "2017-06-02T10:00:00", "depart_loc": "Shinjuku, Tokyo", "dest_loc": "Ueno Park, Tokyo", "min_mins_loc": 0, "max_mins_loc": 540, "traffic_model": "pessimistic", "timezone": "Japan"}' http://localhost/v1/run_task
+# ex. curl -H "Content-Type: application/json" -X POST -d '{"depart_start": "2017-06-02T08:00:00", "depart_end": "2017-06-02T10:00:00", "depart_loc": "16403 25th Ave SE, Bothell, WA 98012", "dest_loc": "2606 116th Ave NE, Bellevue, WA 98004", "min_mins_loc": 480, "max_mins_loc": 540, "traffic_model": "pessimistic", "timezone": "America/Los_Angeles"}' http://localhost/v1/run_task
 
 class CustomJSONEncoder(JSONEncoder):
     def default(self, obj):
@@ -52,7 +52,7 @@ def submit():
     basic_validation_result = basicInputValidator.validate(request_details)
     assert basic_validation_result
   except AssertionError:
-    return "basic_validation_error: " + dumps(basic_validation_result.errors)
+    return jsonify({'job_id': None, 'status': 'error', 'job_submit_error_info': basicInputValidator.errors})
 
   q = Queue(connection=redis_connection)
   depart_loc = request_details['depart_loc']
@@ -62,10 +62,10 @@ def submit():
   diff_mins = max_mins_loc - min_mins_loc
 
   if not diff_mins >= 0:
-    return "diff_mins_negative"
+    return jsonify({'job_id': None, 'status': 'error', 'job_submit_error_info': 'diff_mins_negative'})
 
   if not diff_mins <= 160:
-    return "diff_mins_over_4hrs"
+    return jsonify({'job_id': None, 'status': 'error', 'job_submit_error_info': 'diff_mins_more_than_4hrs'})
 
   request_timezone = request_details['timezone']
   time_grain = 15
@@ -81,7 +81,7 @@ def submit():
 	  min_mins_loc, max_mins_loc,
 	  time_grain, traffic_model, request_timezone)
 
-  return job.get_id()
+  return jsonify({'job_id': job.get_id(), 'status': 'submitted_job'})
 
 @app.route("/v1/status/<job_id>")
 def job_status(job_id):
