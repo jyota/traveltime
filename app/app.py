@@ -52,7 +52,7 @@ def submit():
     basic_validation_result = basicInputValidator.validate(request_details)
     assert basic_validation_result
   except AssertionError:
-    return jsonify({'job_id': None, 'status': 'error', 'job_submit_error_info': basicInputValidator.errors})
+    return jsonify({'job_id': None, 'status': 'error_input_structure_validation'})
 
   q = Queue(connection=redis_connection)
   depart_loc = request_details['depart_loc']
@@ -62,10 +62,10 @@ def submit():
   diff_mins = max_mins_loc - min_mins_loc
 
   if not diff_mins >= 0:
-    return jsonify({'job_id': None, 'status': 'error', 'job_submit_error_info': 'diff_mins_negative'})
+    return jsonify({'job_id': None, 'status': 'error_diff_mins_negative'})
 
   if not diff_mins <= 160:
-    return jsonify({'job_id': None, 'status': 'error', 'job_submit_error_info': 'diff_mins_more_than_4hrs'})
+    return jsonify({'job_id': None, 'status': 'error_diff_mins_more_than_4hrs'})
 
   request_timezone = request_details['timezone']
   time_grain = 15
