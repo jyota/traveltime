@@ -9,8 +9,13 @@ from dateutil import parser
 from pytz import timezone
 from datetime import datetime
 from input_validation import basicInputValidator
+import googlemaps 
 
-# ex. curl -H "Content-Type: application/json" -X POST -d '{"depart_start": "2017-06-02T08:00:00", "depart_end": "2017-06-02T10:00:00", "depart_loc": "16403 25th Ave SE, Bothell, WA 98012", "dest_loc": "2606 116th Ave NE, Bellevue, WA 98004", "min_mins_loc": 480, "max_mins_loc": 540, "traffic_model": "pessimistic", "timezone": "America/Los_Angeles"}' http://localhost/v1/run_task
+# ex. curl -H "Content-Type: application/json" -X POST -d '{"depart_start": "2017-06-02T08:00:00", "depart_end": "2017-06-02T10:00:00", "depart_loc": "16403 25th Ave SE, Bothell, WA 98012", "dest_loc": "2606 116th Ave NE, Bellevue, WA 98004", "min_mins_loc": 480, "max_mins_loc": 540, "traffic_model": "pessimistic"}' http://localhost/v1/run_task
+
+
+gmaps_timezone = googlemaps.Client(key='AIzaSyB8ZZq3WTIqc0n2e0FnYNJhnv4QFks5yb8')
+gmaps_geocoding = googlemaps.Client(key='AIzaSyBRlAX7vk766IZQEd-2mCyqo05pLhLBgLw')
 
 class CustomJSONEncoder(JSONEncoder):
     def default(self, obj):
@@ -61,11 +66,19 @@ def submit():
   max_mins_loc = request_details['max_mins_loc']
   diff_mins = max_mins_loc - min_mins_loc
 
-  request_timezone = request_details['timezone']
+  try: 
+    depart_geo_info = gmaps_geocoding.geocode(depart_loc)
+    request_timezone_info = gmaps_timezone.timezone((
+      depart_geo_info[0]['geometry']['location']['lat'], 
+      depart_geo_info[0]['geometry']['location']['lng']))
+    assert request_timezone_info['status'] == 'OK'
+  except:
+    return jsonify({'job_id': None, 'status': 'api_error_timezonelookup'})
+
   time_grain = 15
   traffic_model = request_details['traffic_model']
-  depart_start = timezone_to_utc(request_timezone, parser.parse(request_details['depart_start']))
-  depart_end = timezone_to_utc(request_timezone, parser.parse(request_details['depart_end']))
+  depart_start = timezone_to_utc(request_timezone_info['timeZoneId'], parser.parse(request_details['depart_start']))
+  depart_end = timezone_to_utc(request_timezone_info['timeZoneId'], parser.parse(request_details['depart_end']))
   depart_span = depart_end - depart_start
   depart_diff_mins = depart_span.total_seconds() / 60
 
@@ -78,7 +91,7 @@ def submit():
 	  depart_start,
 	  depart_end,
 	  min_mins_loc, max_mins_loc,
-	  time_grain, traffic_model, request_timezone)
+	  time_grain, traffic_model, request_timezone_info)
 
   return jsonify({'job_id': job.get_id(), 'status': 'submitted_job'})
 
@@ -91,13 +104,13 @@ def job_status(job_id):
   else:
     working_result = job.result
     if type(working_result) is dict and 'orig_to_dest' in working_result:
-	    working_result['orig_to_dest'] = utc_to_timezone(working_result['requested']['tz_in'], 
+	    working_result['orig_to_dest'] = utc_to_timezone(working_result['requested']['tz_in']['timeZoneId'], 
 							     working_result['orig_to_dest'])
-	    working_result['dest_to_orig'] = utc_to_timezone(working_result['requested']['tz_in'], 
+	    working_result['dest_to_orig'] = utc_to_timezone(working_result['requested']['tz_in']['timeZoneId'], 
 							     working_result['dest_to_orig'])
-	    working_result['requested']['min_leave_in'] = utc_to_timezone(working_result['requested']['tz_in'],
+	    working_result['requested']['min_leave_in'] = utc_to_timezone(working_result['requested']['tz_in']['timeZoneId'],
 									  working_result['requested']['min_leave_in'])
-	    working_result['requested']['max_leave_in'] = utc_to_timezone(working_result['requested']['tz_in'],
+	    working_result['requested']['max_leave_in'] = utc_to_timezone(working_result['requested']['tz_in']['timeZoneId'],
 									  working_result['requested']['max_leave_in'])
 
     response = {
