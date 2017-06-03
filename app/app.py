@@ -61,17 +61,16 @@ def submit():
   max_mins_loc = request_details['max_mins_loc']
   diff_mins = max_mins_loc - min_mins_loc
 
-  if not diff_mins >= 0:
-    return jsonify({'job_id': None, 'status': 'error_diff_mins_negative'})
-
-  if not diff_mins <= 160:
-    return jsonify({'job_id': None, 'status': 'error_diff_mins_more_than_4hrs'})
-
   request_timezone = request_details['timezone']
   time_grain = 15
   traffic_model = request_details['traffic_model']
   depart_start = timezone_to_utc(request_timezone, parser.parse(request_details['depart_start']))
   depart_end = timezone_to_utc(request_timezone, parser.parse(request_details['depart_end']))
+  depart_span = depart_end - depart_start
+  depart_diff_mins = depart_span.total_seconds() / 60
+
+  if not (depart_diff_mins + diff_mins) <= 480 or not depart_diff_mins > 0 or not diff_mins > 0:
+    return jsonify({'job_id': None, 'status': 'error_time_span'})  
 
   job = q.enqueue(get_optimum_time, 
 	  depart_loc,
