@@ -82,7 +82,7 @@ def submit():
   depart_span = depart_end - depart_start
   depart_diff_mins = depart_span.total_seconds() / 60
 
-  if not (depart_diff_mins + diff_mins) <= 480 or not depart_diff_mins > 0 or not diff_mins > 0:
+  if not (depart_diff_mins + diff_mins) <= 480 or not depart_diff_mins >= 0 or not diff_mins >= 0:
     return jsonify({'job_id': None, 'status': 'error_time_span'})  
 
   job = q.enqueue(get_optimum_time, 
