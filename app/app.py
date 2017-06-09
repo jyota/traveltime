@@ -1,4 +1,5 @@
 from flask import Flask, jsonify, request
+from flask_cors import CORS
 from flask.json import JSONEncoder
 from os import environ
 from json import dumps, loads
@@ -47,7 +48,7 @@ def utc_to_timezone(timezone_in, datetime_in):
 app = Flask(__name__)
 app.json_encoder = CustomJSONEncoder
 app.debug = True
-
+CORS(app)
 
 @app.route("/v1/run_task", methods=['POST'])
 def submit():

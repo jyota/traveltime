@@ -5,6 +5,7 @@ uwsgi==2.0.14
 googlemaps==2.4.5
 google-api-python-client==1.5.5
 Flask==0.10.1
+flask-cors==3.0.2
 redis==2.10.5
 rq==0.6.0
 cerberus==1.1
