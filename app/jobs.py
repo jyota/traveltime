@@ -108,6 +108,8 @@ def get_optimum_time(orig_in, dest_in, min_leave_in, max_leave_in, min_dest_in, 
 		    			min_seen = item['orig_to_dest_time'] + sub_item['dest_to_orig_time']
 		    			min_combination['orig_to_dest'] = timestamp
 		    			min_combination['dest_to_orig'] = sub_ts
+		    			min_combination['orig_to_dest_time'] = item['orig_to_dest_time']
+		    			min_combination['dest_to_orig_time'] = sub_item['dest_to_orig_time']
 		    			min_combination['orig_to_dest_summary'] = item['summary_name']
 		    			min_combination['dest_to_orig_summary'] = sub_item['summary_name']
 		    			min_combination['est_travel_time_mins'] = min_seen
