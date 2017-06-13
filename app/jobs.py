@@ -9,21 +9,24 @@ from rq import get_current_job
 gmaps = googlemaps.Client(key='AIzaSyCKKLTC8A5HMzXKtcPbOHhsfCkbj16n98Y')
 
 @job('default', connection=redis_connection)
-def get_optimum_time(orig_in, dest_in, min_leave_in, max_leave_in, min_dest_in, max_dest_in, granularity_in, traffic_model_in, tz_in):
+def get_optimum_time(orig_in, dest_in, min_leave_in, max_leave_in, min_dest_in, max_dest_in, granularity_in, traffic_model_in, tz_in, orig_to_dest_only_in):
 	class DirectionTimeOptimizer:
 	    def __init__(self, origin, destination, 
 			 min_time_to_leave, max_time_to_leave, 
 			 min_time_at_dest, max_time_at_dest,
+			 orig_to_dest_only, 
 			 search_granularity_mins=15, traffic_model="best_guess"):
 		self.origin = origin
+		self.orig_to_dest_only = orig_to_dest_only
 		self.destination = destination
 		self.min_time_to_leave = self.round_closest_mins(min_time_to_leave)
 		self.max_time_to_leave = self.round_closest_mins(max_time_to_leave)
-		self.min_time_at_dest = self.round_closest(min_time_at_dest)
-		self.max_time_at_dest = self.round_closest(max_time_at_dest)
 		self.search_granularity_mins = search_granularity_mins
 		self.time_to_leave_segments = int((((self.max_time_to_leave - self.min_time_to_leave).total_seconds() / 60) / self.search_granularity_mins)) + 1
-		self.time_at_dest_segments = int((max_time_at_dest - min_time_at_dest) / search_granularity_mins) + 1
+		if not orig_to_dest_only:
+			self.min_time_at_dest = self.round_closest(min_time_at_dest)
+			self.max_time_at_dest = self.round_closest(max_time_at_dest)
+			self.time_at_dest_segments = int((max_time_at_dest - min_time_at_dest) / search_granularity_mins) + 1
 		self.traffic_model = traffic_model
 		self.origin_leave_time_lookup = {}
 	    
@@ -92,7 +95,7 @@ def get_optimum_time(orig_in, dest_in, min_leave_in, max_leave_in, min_dest_in, 
 		return True
 
 
-	    def determine_optimum_times(self):
+	    def determine_optimum_times_both_dirs(self):
 		    min_combination = {
 			'orig_to_dest': None,
 			'dest_to_orig': None,
@@ -115,11 +118,31 @@ def get_optimum_time(orig_in, dest_in, min_leave_in, max_leave_in, min_dest_in, 
 
 		    return min_combination
 
+
+	    def determine_optimum_times_one_dir(self):
+		    min_combination = {
+			'orig_to_dest': None,
+			'orig_to_dest_summary': None,
+			'status': 'Success'
+		    }
+
+		    min_seen = 10000000
+		    for timestamp, item in self.origin_leave_time_lookup.iteritems():
+	    		if item['orig_to_dest_time'] < min_seen:
+	    			min_seen = item['orig_to_dest_time']
+	    			min_combination['orig_to_dest'] = timestamp
+	    			min_combination['orig_to_dest_time'] = item['orig_to_dest_time']
+	    			min_combination['orig_to_dest_summary'] = item['summary_name']
+
+		    return min_combination
+
+
+
 	job = get_current_job()
 	job.meta['status'] = 'create'
 	job.save()
 	my_optimizer = DirectionTimeOptimizer(orig_in, dest_in, min_leave_in, max_leave_in, 
-					      min_dest_in, max_dest_in, granularity_in, traffic_model_in)
+					      min_dest_in, max_dest_in, granularity_in, traffic_model_in, orig_to_dest_only_in)
 	job.meta['status'] = 'created'
 	job.save()
 
@@ -127,9 +150,10 @@ def get_optimum_time(orig_in, dest_in, min_leave_in, max_leave_in, min_dest_in, 
 	  my_optimizer.calculate_possible_times_to_leave()
 	  job.meta['status'] = 'times_to_leave_done'
 	  job.save()
-	  my_optimizer.calculate_possible_times_to_return()
-	  job.meta['status'] = 'times_to_return_done'
-	  job.save()
+	  if not orig_to_dest_only_in:
+	    my_optimizer.calculate_possible_times_to_return()
+	    job.meta['status'] = 'times_to_return_done'
+	    job.save()
 	except googlemaps.exceptions.ApiError as e:
 		if 'departure_time is in the past' in str(e):
 			job.meta['status'] = 'api_error_departure_in_the_past'
@@ -143,8 +167,11 @@ def get_optimum_time(orig_in, dest_in, min_leave_in, max_leave_in, min_dest_in, 
 	result = my_optimizer.determine_optimum_times()
 	job.meta['status'] = 'complete'
 	job.save()
-	result['requested'] = {'orig_in': orig_in, 'dest_in': dest_in, 'min_leave_in': min_leave_in,
+	result['requested'] = ({'orig_in': orig_in, 'dest_in': dest_in, 'min_leave_in': min_leave_in,
 				'max_leave_in': max_leave_in, 'min_dest_in': min_dest_in, 'max_dest_in': max_dest_in,
 				'granularity_in': granularity_in, 'traffic_model_in': traffic_model_in, 'tz_in': tz_in}
+				if not orig_to_dest_only_in
+				else {'orig_in': orig_in, 'dest_in': dest_in, 'min_leave_in': min_leave_in,
+				'max_leave_in': max_leave_in, 'granularity_in': granularity_in, 'traffic_model_in': traffic_model_in, 'tz_in': tz_in})
 	return result
 

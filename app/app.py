@@ -12,7 +12,7 @@ from datetime import datetime
 from input_validation import basicInputValidator
 import googlemaps 
 
-# ex. curl -H "Content-Type: application/json" -X POST -d '{"depart_start": "2017-06-02T08:00:00", "depart_end": "2017-06-02T10:00:00", "depart_loc": "16403 25th Ave SE, Bothell, WA 98012", "dest_loc": "2606 116th Ave NE, Bellevue, WA 98004", "min_mins_loc": 480, "max_mins_loc": 540, "traffic_model": "pessimistic"}' http://localhost/v1/run_task
+# ex. curl -H "Content-Type: application/json" -X POST -d '{"dest_to_orig_only": false, depart_start": "2017-06-14T08:00:00", "depart_end": "2017-06-14T10:00:00", "depart_loc": "16403 25th Ave SE, Bothell, WA 98012", "dest_loc": "2606 116th Ave NE, Bellevue, WA 98004", "min_mins_loc": 480, "max_mins_loc": 540, "traffic_model": "pessimistic"}' http://traveltime-jobservice.integrated.pro/v1/run_task
 
 
 gmaps_timezone = googlemaps.Client(key='AIzaSyB8ZZq3WTIqc0n2e0FnYNJhnv4QFks5yb8')
@@ -63,9 +63,6 @@ def submit():
   q = Queue(connection=redis_connection)
   depart_loc = request_details['depart_loc']
   dest_loc = request_details['dest_loc']
-  min_mins_loc = request_details['min_mins_loc']
-  max_mins_loc = request_details['max_mins_loc']
-  diff_mins = max_mins_loc - min_mins_loc
 
   try: 
     depart_geo_info = gmaps_geocoding.geocode(depart_loc)
@@ -82,9 +79,20 @@ def submit():
   depart_end = timezone_to_utc(request_timezone_info['timeZoneId'], parser.parse(request_details['depart_end']))
   depart_span = depart_end - depart_start
   depart_diff_mins = depart_span.total_seconds() / 60
+  orig_to_dest_only = request_details['orig_to_dest_only']
 
-  if not (depart_diff_mins + diff_mins) <= 480 or not depart_diff_mins >= 0 or not diff_mins >= 0:
-    return jsonify({'job_id': None, 'status': 'error_time_span'})  
+  if not orig_to_dest_only:
+    min_mins_loc = request_details['min_mins_loc']
+    max_mins_loc = request_details['max_mins_loc']
+    diff_mins = max_mins_loc - min_mins_loc
+
+    if not (depart_diff_mins + diff_mins) <= 480 or not depart_diff_mins >= 0 or not diff_mins >= 0:
+      return jsonify({'job_id': None, 'status': 'error_time_span'})  
+  else:
+    min_mins_loc = 0
+    max_mins_loc = 0
+    if not depart_diff_mins <= 480 or not depart_diff_mins >= 0:
+      return jsonify({'job_id': None, 'status': 'error_time_span'})  
 
   job = q.enqueue(get_optimum_time, 
 	  depart_loc,
@@ -92,7 +100,8 @@ def submit():
 	  depart_start,
 	  depart_end,
 	  min_mins_loc, max_mins_loc,
-	  time_grain, traffic_model, request_timezone_info)
+	  time_grain, traffic_model, request_timezone_info,
+    orig_to_dest_only)
 
   return jsonify({'job_id': job.get_id(), 'status': 'submitted_job'})
 
