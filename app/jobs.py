@@ -164,7 +164,11 @@ def get_optimum_time(orig_in, dest_in, min_leave_in, max_leave_in, min_dest_in, 
 			job.save()
 			return None
 
-	result = my_optimizer.determine_optimum_times()
+	if not orig_to_dest_only_in:
+	  result = my_optimizer.determine_optimum_times_both_dirs()
+	else:
+	  result = my_optimizer.determine_optimum_times_one_dir()
+	
 	job.meta['status'] = 'complete'
 	job.save()
 	result['requested'] = ({'orig_in': orig_in, 'dest_in': dest_in, 'min_leave_in': min_leave_in,
