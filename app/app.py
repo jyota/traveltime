@@ -116,8 +116,9 @@ def job_status(job_id):
     if type(working_result) is dict and 'orig_to_dest' in working_result:
 	    working_result['orig_to_dest'] = utc_to_timezone(working_result['requested']['tz_in']['timeZoneId'], 
 							     working_result['orig_to_dest'])
-	    working_result['dest_to_orig'] = utc_to_timezone(working_result['requested']['tz_in']['timeZoneId'], 
-							     working_result['dest_to_orig'])
+            if 'dest_to_orig' in working_result:
+	         working_result['dest_to_orig'] = utc_to_timezone(working_result['requested']['tz_in']['timeZoneId'], 
+		    					          working_result['dest_to_orig'])
 	    working_result['requested']['min_leave_in'] = utc_to_timezone(working_result['requested']['tz_in']['timeZoneId'],
 									  working_result['requested']['min_leave_in'])
 	    working_result['requested']['max_leave_in'] = utc_to_timezone(working_result['requested']['tz_in']['timeZoneId'],

@@ -21,7 +21,7 @@ def get_optimum_time(orig_in, dest_in, min_leave_in, max_leave_in, min_dest_in, 
 		self.destination = destination
 		self.min_time_to_leave = self.round_closest_mins(min_time_to_leave)
 		self.max_time_to_leave = self.round_closest_mins(max_time_to_leave)
-		self.search_granularity_mins = search_granularity_mins
+		self.search_granularity_mins = int(search_granularity_mins)
 		self.time_to_leave_segments = int((((self.max_time_to_leave - self.min_time_to_leave).total_seconds() / 60) / self.search_granularity_mins)) + 1
 		if not orig_to_dest_only:
 			self.min_time_at_dest = self.round_closest(min_time_at_dest)
@@ -142,7 +142,7 @@ def get_optimum_time(orig_in, dest_in, min_leave_in, max_leave_in, min_dest_in, 
 	job.meta['status'] = 'create'
 	job.save()
 	my_optimizer = DirectionTimeOptimizer(orig_in, dest_in, min_leave_in, max_leave_in, 
-					      min_dest_in, max_dest_in, granularity_in, traffic_model_in, orig_to_dest_only_in)
+					      min_dest_in, max_dest_in, orig_to_dest_only_in, granularity_in, traffic_model_in)
 	job.meta['status'] = 'created'
 	job.save()
 
@@ -171,11 +171,11 @@ def get_optimum_time(orig_in, dest_in, min_leave_in, max_leave_in, min_dest_in, 
 	
 	job.meta['status'] = 'complete'
 	job.save()
-	result['requested'] = ({'orig_in': orig_in, 'dest_in': dest_in, 'min_leave_in': min_leave_in,
+	result['requested'] = ({'orig_to_dest_only': orig_to_dest_only_in, 'orig_in': orig_in, 'dest_in': dest_in, 'min_leave_in': min_leave_in,
 				'max_leave_in': max_leave_in, 'min_dest_in': min_dest_in, 'max_dest_in': max_dest_in,
 				'granularity_in': granularity_in, 'traffic_model_in': traffic_model_in, 'tz_in': tz_in}
 				if not orig_to_dest_only_in
-				else {'orig_in': orig_in, 'dest_in': dest_in, 'min_leave_in': min_leave_in,
+				else {'orig_to_dest_only': orig_to_dest_only_in, 'orig_in': orig_in, 'dest_in': dest_in, 'min_leave_in': min_leave_in,
 				'max_leave_in': max_leave_in, 'granularity_in': granularity_in, 'traffic_model_in': traffic_model_in, 'tz_in': tz_in})
 	return result
 
